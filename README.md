@@ -55,7 +55,7 @@ The unit tests cover the logic. These need a real phone:
 
 | Feature | Why |
 |---|---|
-| Change the GPS location for other apps | Not possible for an App Store-style app. A map pin is only a marker inside this app. |
+| Change the GPS location without setup | Possible only through the phone's developer service. See "Changing the phone's GPS location" below. |
 | Battery health, cycle count | Not shared with apps. See Settings > Battery > Battery Health. |
 | List of all installed apps and their sizes | Not shared with apps. The Apps screen checks a fixed list of well-known apps. |
 | Clearing other apps' caches or system files | Not possible. See Settings > General > iPhone Storage. |
@@ -63,6 +63,24 @@ The unit tests cover the logic. These need a real phone:
 | Screen Time and app usage | Needs the Family Controls capability, also unavailable with free signing. |
 | Hardware tests (screen, speakers, sensors) | iOS has no such interface. Diagnostics shows whether each part is reported as present. |
 | The name you gave the phone | Since iOS 16 apps receive the generic name "iPhone". |
+
+## Changing the phone's GPS location
+
+The Location tab can make every app on the phone see a chosen location, with no computer attached. It connects to the phone's own developer service through a loopback VPN, the same service desktop tools use over USB.
+
+One-time setup:
+
+1. Install **LocalDevVPN** from the App Store, open it and tap **Connect**.
+2. On the PC, with the phone plugged in, run [idevice_pair](https://github.com/jkcoxson/idevice_pair), choose **Remote pairing (RPPairing)**, click **Create** and save the file.
+3. Put the file on the phone: in desktop 3uTools open **Files > Apps > 3uTools Mobile** and copy it into **Documents**, or save it in the Files app and use **Import pairing file** in the app (gear button on the Location tab).
+
+After every restart of the phone, plug it into the PC and open VirtualLocation in desktop 3uTools once. That loads Apple's developer tools, which this app needs and cannot load by itself yet.
+
+To use it: pick a place on the map, tap **Set as phone GPS**. Tap **Stop** or **Restore**, or restart the phone, to return to the real location. Keep LocalDevVPN connected while it is active. A new pairing file is needed after a passcode change or iOS update.
+
+Some apps and games detect simulated locations and can restrict accounts.
+
+This feature follows the method of the open-source [StikDebug](https://github.com/StikDebug/StikDebug) project (AGPL-3.0) and uses the [idevice](https://github.com/jkcoxson/idevice) library (MIT, in `Vendor/idevice`). If this repository is ever shared or made public, the AGPL terms apply to the code derived from StikDebug.
 
 ## Project layout
 

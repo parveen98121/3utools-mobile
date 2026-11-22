@@ -11,6 +11,13 @@ struct LocationView: View {
     @State private var showNotice = true
     @State private var showSaved = false
     @State private var showCoordinates = false
+    @State private var gps = GPSSimulationViewModel.shared
+    @State private var showSetup = false
+
+    private var gpsFailure: String? {
+        if case .failed(let message) = gps.state { return message }
+        return nil
+    }
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -18,7 +25,7 @@ struct LocationView: View {
             VStack(spacing: 8) {
                 searchBar
                 if !model.results.isEmpty { resultsList }
-                if showNotice { notice }
+                if showNotice || gps.isActive { notice }
                 Spacer()
                 if let selected = model.selected {
                     selectionPanel(selected)
@@ -33,6 +40,13 @@ struct LocationView: View {
         .navigationTitle("Virtual Location")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    showSetup = true
+                } label: {
+                    Label("GPS setup", systemImage: "gearshape")
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     showSaved = true
@@ -40,6 +54,19 @@ struct LocationView: View {
                     Label("History and favourites", systemImage: "clock.arrow.circlepath")
                 }
             }
+        }
+        .sheet(isPresented: $showSetup) {
+            GPSSetupView()
+        }
+        .alert("Phone GPS not changed", isPresented: Binding(get: { gpsFailure != nil },
+                                                             set: { if !$0 { gps.dismissFailure() } })) {
+            Button("Open setup") {
+                gps.dismissFailure()
+                showSetup = true
+            }
+            Button("OK", role: .cancel) { gps.dismissFailure() }
+        } message: {
+            Text(gpsFailure ?? "")
         }
         .sheet(isPresented: $showSaved) {
             SavedLocationsSheet { location in
@@ -140,10 +167,37 @@ struct LocationView: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
+    @ViewBuilder
     private var notice: some View {
+        if case .active(let latitude, let longitude) = gps.state {
+            HStack(spacing: 8) {
+                Image(systemName: "location.fill.viewfinder").foregroundStyle(.white)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Phone GPS is changed for all apps")
+                        .font(.caption.weight(.bold))
+                    Text("\(Format.coordinate(latitude)), \(Format.coordinate(longitude)). Keep LocalDevVPN connected.")
+                        .font(.caption2)
+                }
+                .foregroundStyle(.white)
+                Spacer()
+                Button("Stop") {
+                    Task { await gps.stop() }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.white.opacity(0.25))
+                .controlSize(.small)
+            }
+            .padding(10)
+            .background(Theme.gradient, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        } else {
+            infoNotice
+        }
+    }
+
+    private var infoNotice: some View {
         HStack(alignment: .top, spacing: 8) {
             Image(systemName: "info.circle.fill").foregroundStyle(Theme.brandBlue)
-            Text("A pin here is a marker inside this app only. iOS does not allow an app to change the phone's GPS location for other apps.")
+            Text("Pick a place, then tap “Set as phone GPS” to change the location every app sees. It needs a one-time setup: tap the gear at the top left.")
                 .font(.caption)
             Button {
                 withAnimation { showNotice = false }
@@ -229,6 +283,21 @@ struct LocationView: View {
 
             coordinateFields
 
+            Button {
+                Task { await gps.start(latitude: selected.latitude, longitude: selected.longitude) }
+            } label: {
+                if gps.isConnecting {
+                    HStack(spacing: 8) {
+                        ProgressView().tint(.white)
+                        Text("Connecting…")
+                    }
+                } else {
+                    Label("Set as phone GPS", systemImage: "location.fill.viewfinder")
+                }
+            }
+            .buttonStyle(GradientButtonStyle())
+            .disabled(gps.isConnecting)
+
             HStack(spacing: 8) {
                 Button {
                     model.openInMaps()
@@ -245,7 +314,10 @@ struct LocationView: View {
                 .buttonStyle(.bordered)
 
                 Button {
-                    model.restoreActualLocation()
+                    Task {
+                        await gps.stop()
+                        model.restoreActualLocation()
+                    }
                 } label: {
                     Label("Restore", systemImage: "location.fill")
                 }
@@ -254,7 +326,7 @@ struct LocationView: View {
             .font(.footnote)
             .lineLimit(1)
 
-            Text("“Restore” removes the pin and returns the map to your actual location.")
+            Text("“Restore” returns the phone to its real GPS location and removes the pin.")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }
