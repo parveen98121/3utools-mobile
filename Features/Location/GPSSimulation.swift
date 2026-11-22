@@ -32,8 +32,21 @@ final class GPSSimulationViewModel {
 
     /// LocalDevVPN gives the phone an address in 10.7.0.x while it is connected.
     func refreshStatus() {
-        if PairingFileStore.adoptFromDocuments() {
-            setupMessage = "A pairing file was found in the app's Documents folder and imported."
+        do {
+            if try PairingFileStore.adoptFromDocuments() {
+                setupMessage = "A pairing file was found in the app's Documents folder and imported."
+            }
+        } catch {
+            setupMessage = error.localizedDescription
+        }
+        // A file stored by an earlier version was not checked; drop it if it is not a pairing file.
+        if PairingFileStore.exists, let data = try? Data(contentsOf: PairingFileStore.url) {
+            do {
+                try PairingFileStore.validate(data)
+            } catch {
+                PairingFileStore.remove()
+                setupMessage = "The pairing file added earlier was removed. \(error.localizedDescription)"
+            }
         }
         hasPairingFile = PairingFileStore.exists
         pairingDate = PairingFileStore.importedDate

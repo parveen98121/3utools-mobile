@@ -16,6 +16,7 @@ enum GPSSimulationError: LocalizedError {
     case unsupported
     case noPairingFile
     case pairingFile(String)
+    case wrongFile(String)
     case tunnel(String)
     case developerServices(String)
     case locationService(String)
@@ -32,6 +33,8 @@ enum GPSSimulationError: LocalizedError {
                 return "This is the wrong kind of pairing file. iOS 27 needs a Remote Pairing (RPPairing) file, not a Lockdown one. Create it again and choose Remote pairing. (\(detail))"
             }
             return "The pairing file could not be read. Create a new one and import it again. (\(detail))"
+        case .wrongFile(let detail):
+            return "That file cannot be used. \(detail)"
         case .tunnel(let detail):
             return "Could not connect to the phone's developer service. Check that LocalDevVPN is connected, the phone is on Wi-Fi, and the pairing file was made after your last passcode change or iOS update. (\(detail))"
         case .developerServices(let detail):
@@ -68,8 +71,9 @@ enum PairingFileStore {
 
     /// Picks up a pairing file dropped into the app's Documents folder from a computer
     /// (for example with the desktop 3uTools file manager). Returns true if one was adopted.
+    /// Throws when a candidate file is there but is not a pairing file.
     @discardableResult
-    static func adoptFromDocuments() -> Bool {
+    static func adoptFromDocuments() throws -> Bool {
         let manager = FileManager.default
         guard let documents = manager.urls(for: .documentDirectory, in: .userDomainMask).first,
               let files = try? manager.contentsOfDirectory(at: documents, includingPropertiesForKeys: [.contentModificationDateKey]) else {
@@ -86,22 +90,41 @@ enum PairingFileStore {
         guard let newest = candidates.first, let data = try? Data(contentsOf: newest) else { return false }
         do {
             try store(data)
-            // The file holds connection credentials, so it should not stay in the shared folder.
-            try? manager.removeItem(at: newest)
-            return true
-        } catch {
-            return false
+        } catch GPSSimulationError.wrongFile(let detail) {
+            throw GPSSimulationError.wrongFile("“\(newest.lastPathComponent)” in the Documents folder: \(detail)")
         }
+        // The file holds connection credentials, so it should not stay in the shared folder.
+        try? manager.removeItem(at: newest)
+        return true
     }
 
     static func remove() {
         try? FileManager.default.removeItem(at: url)
     }
 
-    private static func store(_ data: Data) throws {
+    /// Checks that the data is a Remote Pairing file before it is stored, and says what it is if not.
+    static func validate(_ data: Data) throws {
         guard !data.isEmpty else {
-            throw GPSSimulationError.pairingFile("The file is empty.")
+            throw GPSSimulationError.wrongFile("The file is empty.")
         }
+        guard let object = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil),
+              let dictionary = object as? [String: Any] else {
+            let start = data.prefix(12).map { byte -> String in
+                (32...126).contains(byte) ? String(UnicodeScalar(byte)) : "."
+            }.joined()
+            throw GPSSimulationError.wrongFile("It is not a pairing file at all (\(Format.bytes(Int64(data.count))), begins with “\(start)”). Pick the file that idevice_pair saved.")
+        }
+        if dictionary["public_key"] != nil, dictionary["private_key"] != nil, dictionary["identifier"] != nil {
+            return
+        }
+        if dictionary["HostCertificate"] != nil || dictionary["DeviceCertificate"] != nil {
+            throw GPSSimulationError.wrongFile("It is a Lockdown pairing file. iOS 27 needs the other kind: in idevice_pair choose Remote pairing (RPPairing), create it again and import that file.")
+        }
+        throw GPSSimulationError.wrongFile("It is a settings file, but not a pairing file (it has no pairing keys). Pick the file that idevice_pair saved.")
+    }
+
+    private static func store(_ data: Data) throws {
+        try validate(data)
         let manager = FileManager.default
         try manager.createDirectory(at: folder, withIntermediateDirectories: true)
         try data.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
