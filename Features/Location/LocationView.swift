@@ -82,7 +82,10 @@ struct LocationView: View {
             }
             .onTapGesture { point in
                 guard let coordinate = proxy.convert(point, from: .local) else { return }
-                Task { await model.select(latitude: coordinate.latitude, longitude: coordinate.longitude, name: nil) }
+                Task {
+                    await model.select(latitude: coordinate.latitude, longitude: coordinate.longitude,
+                                       name: nil, moveCamera: false)
+                }
             }
         }
         .ignoresSafeArea(edges: .bottom)

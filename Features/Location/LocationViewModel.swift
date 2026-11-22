@@ -142,14 +142,19 @@ final class LocationViewModel {
         await select(latitude: coordinate.latitude, longitude: coordinate.longitude, name: nil)
     }
 
-    func select(latitude: Double, longitude: Double, name: String?, knownAddress: String? = nil) async {
+    /// `moveCamera` is false for a pin dropped by tapping: the pin is already on screen,
+    /// so the map keeps its position and zoom instead of jumping.
+    func select(latitude: Double, longitude: Double, name: String?, knownAddress: String? = nil,
+                moveCamera: Bool = true) async {
         var place = SelectedPlace(name: name ?? "Dropped pin", address: knownAddress ?? "",
                                   latitude: latitude, longitude: longitude)
         latitudeText = Format.coordinate(latitude)
         longitudeText = Format.coordinate(longitude)
         selected = place
-        withAnimation {
-            camera = .region(MKCoordinateRegion(center: place.coordinate, latitudinalMeters: 1500, longitudinalMeters: 1500))
+        if moveCamera {
+            withAnimation {
+                camera = .region(MKCoordinateRegion(center: place.coordinate, latitudinalMeters: 1500, longitudinalMeters: 1500))
+            }
         }
 
         guard knownAddress == nil || knownAddress?.isEmpty == true else { return }
