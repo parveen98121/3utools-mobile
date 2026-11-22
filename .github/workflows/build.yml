@@ -1,0 +1,71 @@
+name: Build
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build app for iPhone (unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project ThreeUTools.xcodeproj \
+            -scheme ThreeUTools \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tee build.log | grep -E "error|warning: unre|BUILD|\*\*" || true
+          test -d build/Build/Products/Release-iphoneos/ThreeUTools.app
+
+      - name: Package IPA
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/ThreeUTools.app Payload/
+          zip -qry 3uToolsMobile.ipa Payload
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: 3uToolsMobile-ipa
+          path: 3uToolsMobile.ipa
+
+      - name: Run unit tests
+        run: |
+          set -o pipefail
+          DEVICE_ID=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; ids=[x['udid'] for k in sorted(d, reverse=True) if 'iOS' in k for x in d[k] if 'iPhone' in x['name']]; print(ids[0])")
+          echo "Using simulator $DEVICE_ID"
+          xcodebuild \
+            -project ThreeUTools.xcodeproj \
+            -scheme ThreeUTools \
+            -destination "id=$DEVICE_ID" \
+            -derivedDataPath build-tests \
+            CODE_SIGNING_ALLOWED=NO \
+            test 2>&1 | tee test.log | grep -E "error|Test Case|Executed|TEST|\*\*" || true
+          grep -q "TEST SUCCEEDED" test.log
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs
+          path: |
+            build.log
+            test.log
+          if-no-files-found: ignore

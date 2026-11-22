@@ -1,0 +1,103 @@
+name: ThreeUTools
+options:
+  bundleIdPrefix: com.personal
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    TARGETED_DEVICE_FAMILY: "1"
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+targets:
+  ThreeUTools:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+      - path: Core
+      - path: Features
+      - path: Resources
+    info:
+      path: Support/Info.plist
+      properties:
+        CFBundleDisplayName: 3uTools Mobile
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        ITSAppUsesNonExemptEncryption: false
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        NSPhotoLibraryUsageDescription: Shows your photos, videos and albums, and deletes the items you select and confirm.
+        NSCameraUsageDescription: Scans QR codes and barcodes when you open the scanner.
+        NSLocationWhenInUseUsageDescription: Shows your current position on the map in the Location tab.
+        NSMicrophoneUsageDescription: Lets the diagnostics screen confirm that microphone access works when you ask it to.
+        LSApplicationQueriesSchemes:
+          - whatsapp
+          - instagram
+          - fb
+          - fb-messenger
+          - youtube
+          - tg
+          - twitter
+          - spotify
+          - comgooglemaps
+          - googlechrome
+          - googlegmail
+          - googledrive
+          - snapchat
+          - nflx
+          - snssdk1233
+          - zoomus
+          - uber
+          - linkedin
+          - pinterest
+          - com.amazon.mobile.shopping
+          - vlc
+          - msteams
+          - ms-outlook
+          - paypal
+          - paytmmp
+          - phonepe
+          - tez
+          - truecaller
+          - discord
+          - reddit
+          - sgnl
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.personal.threeutoolsmobile
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        CODE_SIGN_STYLE: Automatic
+        ENABLE_PREVIEWS: "YES"
+  ThreeUToolsTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: ThreeUTools
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: "YES"
+        PRODUCT_BUNDLE_IDENTIFIER: com.personal.threeutoolsmobile.tests
+schemes:
+  ThreeUTools:
+    build:
+      targets:
+        ThreeUTools: all
+        ThreeUToolsTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - ThreeUToolsTests
+    archive:
+      config: Release
