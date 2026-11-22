@@ -46,6 +46,9 @@ protocol DeviceInfoProviding {
 
 @MainActor
 struct LiveDeviceInfoService: DeviceInfoProviding {
+    /// Nonisolated so the service can be used as a default argument.
+    nonisolated init() {}
+
     func snapshot() -> DeviceSnapshot {
         let device = UIDevice.current
         let process = ProcessInfo.processInfo
@@ -125,6 +128,8 @@ protocol BatteryProviding {
 
 @MainActor
 struct LiveBatteryService: BatteryProviding {
+    nonisolated init() {}
+
     func current() -> BatteryReading {
         let device = UIDevice.current
         if !device.isBatteryMonitoringEnabled {
@@ -161,6 +166,8 @@ protocol StorageProviding {
 
 @MainActor
 struct LiveStorageService: StorageProviding {
+    nonisolated init() {}
+
     func snapshot() throws -> StorageSnapshot {
         let home = URL(fileURLWithPath: NSHomeDirectory())
         let values = try home.resourceValues(forKeys: [
