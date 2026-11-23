@@ -48,14 +48,14 @@ The unit tests cover the logic. These need a real phone:
 - **Device > Battery**: plug the charger in and out; the state changes and a charging session appears.
 - **Device > Storage**: "Analyse photo library" asks for photo access, then shows counts and an estimated size.
 - **Photos**: grid loads, a photo zooms, a video plays, Select then delete asks twice and removes the item.
-- **Location**: the blue dot appears after allowing location, tapping the map drops a pin with an address, the star saves a favourite, Restore removes the pin.
+- **Location**: see "Testing Virtual Location on the phone" below.
 - **Toolbox**: the speed test finishes with three numbers, the QR scanner reads a code, Files opens and previews a document, the device report can be shared.
 
 ## What the app cannot do, by design of iOS
 
 | Feature | Why |
 |---|---|
-| Change the GPS location without setup | Possible only through the phone's developer service. See "Changing the phone's GPS location" below. |
+| Change the GPS location other apps receive | iOS has no public feature for this. The Location tab sets a virtual location for this app only. |
 | Battery health, cycle count | Not shared with apps. See Settings > Battery > Battery Health. |
 | List of all installed apps and their sizes | Not shared with apps. The Apps screen checks a fixed list of well-known apps. |
 | Clearing other apps' caches or system files | Not possible. See Settings > General > iPhone Storage. |
@@ -64,23 +64,45 @@ The unit tests cover the logic. These need a real phone:
 | Hardware tests (screen, speakers, sensors) | iOS has no such interface. Diagnostics shows whether each part is reported as present. |
 | The name you gave the phone | Since iOS 16 apps receive the generic name "iPhone". |
 
-## Changing the phone's GPS location
 
-The Location tab can make every app on the phone see a chosen location, with no computer attached. It connects to the phone's own developer service through a loopback VPN, the same service desktop tools use over USB.
+## Virtual Location
 
-One-time setup:
+The Location tab works on the iPhone alone. It needs no computer, cable, pairing file or other app.
 
-1. Install **LocalDevVPN** from the App Store, open it and tap **Connect**.
-2. On the PC, with the phone plugged in, run [idevice_pair](https://github.com/jkcoxson/idevice_pair), choose **Remote pairing (RPPairing)**, click **Create** and save the file.
-3. Put the file on the phone: in desktop 3uTools open **Files > Apps > 3uTools Mobile** and copy it into **Documents**, or save it in the Files app and use **Import pairing file** in the app (gear button on the Location tab).
+What it does:
 
-After every restart of the phone, plug it into the PC and open VirtualLocation in desktop 3uTools once. That loads Apple's developer tools, which this app needs and cannot load by itself yet.
+- Search by city, address or place, type a latitude and longitude, or tap the map to drop a pin. Drag the pin to adjust it.
+- Shows the pin's coordinates, address and distance from your actual position (when location access is allowed).
+- **Set virtual location** makes that place the location this app uses: the map reopens there, searches look around it, and the Home screen shows it. It is saved and is still set when you reopen the app.
+- **Restore** returns the app to your actual location.
+- Favourites, history and recent places are stored on the phone.
+- Directions open in Apple Maps; Copy puts the coordinates on the clipboard; + and − zoom the map.
 
-To use it: pick a place on the map, tap **Set as phone GPS**. Tap **Stop** or **Restore**, or restart the phone, to return to the real location. Keep LocalDevVPN connected while it is active. A new pairing file is needed after a passcode change or iOS update.
+What it does not do: it does not change the GPS location that other apps receive. iOS has no public feature for that. Apple provides location simulation only as a developer testing tool driven from a computer, with the phone in Developer Mode. This app does not include or depend on that.
 
-Some apps and games detect simulated locations and can restrict accounts.
+The code is split into five managers in `Features/Location/LocationManagers.swift`:
 
-This feature follows the method of the open-source [StikDebug](https://github.com/StikDebug/StikDebug) project (AGPL-3.0) and uses the [idevice](https://github.com/jkcoxson/idevice) library (MIT, in `Vendor/idevice`). If this repository is ever shared or made public, the AGPL terms apply to the code derived from StikDebug.
+| Manager | Responsibility |
+|---|---|
+| `VirtualLocationManager` | Holds, validates, saves and restores the virtual location |
+| `MapLocationManager` | Camera, selected pin, zooming, directions |
+| `LocationSearchManager` | Place and address search, coordinate input, reverse lookup |
+| `LocationHistoryManager` | History, recent places and favourites |
+| `LocationPermissionManager` | Location permission and the phone's actual position |
+
+### Testing Virtual Location on the phone
+
+1. Install the app fresh, with nothing else set up and the phone not connected to a computer.
+2. Open the Location tab. Allow location access when asked; the blue dot appears.
+3. Search for a city. Pick a result; the map moves there and a pin appears.
+4. Tap elsewhere on the map; the pin moves there and its address fills in. Drag the pin; it follows your finger and the address updates when you let go.
+5. Tap "Enter latitude and longitude", type `19.0760` and `72.8777`, tap Go; the pin moves to Mumbai.
+6. Tap the star; open the clock button (top right) and check the place is under Favourites.
+7. Tap **Set virtual location**; the banner appears and the Home tab shows the place under "App location".
+8. Close the app completely and reopen it; the virtual location is still set.
+9. Tap **Restore**; the banner disappears and the map returns to the blue dot.
+10. In Settings, turn location access off for the app; the tab still works, and it explains that only your actual position and distances are hidden.
+11. Turn on Airplane Mode and search; the app says search needs the internet. Typing coordinates and tapping the map still work, though map tiles that were not loaded before stay blank.
 
 ## Project layout
 

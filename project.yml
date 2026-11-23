@@ -35,14 +35,7 @@ targets:
           - UIInterfaceOrientationLandscapeRight
         NSPhotoLibraryUsageDescription: Shows your photos, videos and albums, and deletes the items you select and confirm.
         NSCameraUsageDescription: Scans QR codes and barcodes when you open the scanner.
-        NSLocationWhenInUseUsageDescription: Shows your current position on the map, and keeps the app running while a simulated GPS location is active.
-        NSLocalNetworkUsageDescription: Finds this iPhone's own developer service so the app can change the GPS location.
-        NSBonjourServices:
-          - _remotepairing._tcp
-        UIBackgroundModes:
-          - location
-        UIFileSharingEnabled: true
-        LSSupportsOpeningDocumentsInPlace: true
+        NSLocationWhenInUseUsageDescription: Shows your actual position on the map and measures the distance to the virtual location you choose.
         NSMicrophoneUsageDescription: Lets the diagnostics screen confirm that microphone access works when you ask it to.
         LSApplicationQueriesSchemes:
           - whatsapp
@@ -83,10 +76,6 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         CODE_SIGN_STYLE: Automatic
         ENABLE_PREVIEWS: "YES"
-        SWIFT_INCLUDE_PATHS: $(inherited) $(SRCROOT)/Vendor/idevice
-        HEADER_SEARCH_PATHS: $(inherited) $(SRCROOT)/Vendor/idevice
-        # The idevice library is only built for real iPhones, so it is linked for device builds only.
-        "OTHER_LDFLAGS[sdk=iphoneos*]": $(inherited) $(SRCROOT)/Vendor/idevice/libidevice_ffi.a -framework Security -framework SystemConfiguration -framework CoreFoundation -lresolv -liconv
   ThreeUToolsTests:
     type: bundle.unit-test
     platform: iOS

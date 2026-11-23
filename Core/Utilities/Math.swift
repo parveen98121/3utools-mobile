@@ -172,6 +172,29 @@ enum CoordinateParser {
     }
 }
 
+enum GeoMath {
+    /// Great-circle distance in metres between two points (haversine formula).
+    static func distance(from start: Coordinate, to end: Coordinate) -> Double {
+        let earthRadius = 6_371_000.0
+        let latitude1 = start.latitude * .pi / 180
+        let latitude2 = end.latitude * .pi / 180
+        let deltaLatitude = (end.latitude - start.latitude) * .pi / 180
+        let deltaLongitude = (end.longitude - start.longitude) * .pi / 180
+        let a = sin(deltaLatitude / 2) * sin(deltaLatitude / 2)
+            + cos(latitude1) * cos(latitude2) * sin(deltaLongitude / 2) * sin(deltaLongitude / 2)
+        return earthRadius * 2 * atan2(sqrt(a), sqrt(1 - a))
+    }
+
+    /// 850 becomes "850 m", 2740 becomes "2.7 km".
+    static func distanceText(_ metres: Double) -> String {
+        if metres < 1000 {
+            return "\(Int(metres.rounded())) m"
+        }
+        let kilometres = metres / 1000
+        return String(format: kilometres < 100 ? "%.1f km" : "%.0f km", locale: Locale(identifier: "en_US_POSIX"), kilometres)
+    }
+}
+
 // MARK: - Speed
 
 enum SpeedMath {

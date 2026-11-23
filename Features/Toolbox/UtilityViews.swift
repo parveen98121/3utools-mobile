@@ -241,7 +241,7 @@ struct AboutView: View {
             }
 
             Section("What iOS does not allow") {
-                point("Changing GPS without setup", "The Location tab can change the GPS location for all apps, but only through the phone's developer service. That needs LocalDevVPN, a pairing file made on a computer, and Developer Mode. The pairing file is kept in the app's private storage and never leaves the phone.")
+                point("System-wide location changes", "The virtual location you set applies inside this app only. iOS has no public feature that lets an app change the GPS location other apps receive; Apple offers that only as a computer-driven developer testing tool.")
                 point("Battery health and hardware tests", "Apps cannot read maximum capacity or cycle count, or test the screen, speakers or sensors.")
                 point("Other apps", "Apps cannot list installed apps, see their sizes, or clear their caches.")
                 point("Locks and security", "The app does nothing with Activation Lock, iCloud accounts or passcodes.")

@@ -4,6 +4,7 @@ import UIKit
 struct HomeView: View {
     @State private var model = HomeViewModel()
     @State private var diagnostics = DiagnosticsViewModel()
+    @State private var virtualLocation = VirtualLocationManager.shared
 
     private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
 
@@ -23,6 +24,8 @@ struct HomeView: View {
 
                 NavigationLink { DeviceInfoView() } label: { deviceCard }
                     .buttonStyle(.plain)
+
+                locationCard
 
                 quickActions
             }
@@ -151,6 +154,27 @@ struct HomeView: View {
                     summaryRow("Memory", Format.bytes(Int64(device.physicalMemory)))
                     summaryRow("Running for", Format.duration(device.uptime))
                 }
+            }
+        }
+    }
+
+    /// Shows which location the app is using: the virtual one set in the Location tab, or the actual one.
+    private var locationCard: some View {
+        InfoCard(title: "App location", systemImage: "mappin.and.ellipse") {
+            if let current = virtualLocation.current {
+                VStack(spacing: 8) {
+                    summaryRow("Using", "Virtual location")
+                    summaryRow("Place", current.name)
+                    summaryRow("Coordinates", "\(Format.coordinate(current.latitude)), \(Format.coordinate(current.longitude))")
+                }
+                Text("Set in the Location tab. It applies inside this app only.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            } else {
+                summaryRow("Using", "Actual location")
+                Text("Pick a place in the Location tab to set a virtual location for this app.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
             }
         }
     }
